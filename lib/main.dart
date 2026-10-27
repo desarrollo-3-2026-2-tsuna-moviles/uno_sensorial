@@ -20,14 +20,14 @@ void main() {
   runApp(const UnoGameApp());
 }
 
-/// Aplicación Principal basada en Arquitectura MVVM para la rama feature/#1-ui-mesa-menu
+/// Aplicación Principal que conecta todas las pantallas de menús de Figma
 class UnoGameApp extends StatelessWidget {
   const UnoGameApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'UNO - Menú Principal y Vistas',
+      title: 'UNO - Menú Principal y Vistas Figma',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0D0D1A),
@@ -84,12 +84,11 @@ class _NavigationFlowHandlerState extends State<_NavigationFlowHandler> {
           user: _currentUser!,
           onSolo: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Modo Un Jugador seleccionado')),
+              const SnackBar(content: Text('Modo Jugar Solo (IA) seleccionado')),
             );
           },
           onMultiplayer: () => _navigateTo('multiplayer'),
           onSettings: () => _navigateTo('settings'),
-          onStats: () => _navigateTo('settings'),
         );
 
       case 'multiplayer':
@@ -137,7 +136,6 @@ class _NavigationFlowHandlerState extends State<_NavigationFlowHandler> {
           onSolo: () {},
           onMultiplayer: () => _navigateTo('multiplayer'),
           onSettings: () => _navigateTo('settings'),
-          onStats: () => _navigateTo('settings'),
         );
     }
   }
