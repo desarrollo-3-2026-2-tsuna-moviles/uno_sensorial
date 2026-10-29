@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'login_view.dart';
 
-/// MenuPrincipalView que recrea el diseño de Figma y soporta navegación
-/// hacia Un Jugador, Multijugador, Configuración y Estadísticas (RNF-07).
+/// MenuPrincipalView que recrea el diseño exacto de Figma (MenuScreen.tsx)
 class MenuPrincipalView extends StatelessWidget {
   final AppUser user;
   final VoidCallback onSolo;
   final VoidCallback onMultiplayer;
   final VoidCallback onSettings;
-  final VoidCallback onStats;
 
   const MenuPrincipalView({
     super.key,
@@ -16,7 +14,6 @@ class MenuPrincipalView extends StatelessWidget {
     required this.onSolo,
     required this.onMultiplayer,
     required this.onSettings,
-    required this.onStats,
   });
 
   @override
@@ -173,14 +170,14 @@ class MenuPrincipalView extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Tarjetas de Opciones de Menú (RNF-07)
+                // Opciones del Menú (Exactamente 3 opciones como en Figma MenuScreen.tsx)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: <Widget>[
                       _MenuOptionCard(
-                        label: 'Un Jugador',
-                        description: 'Enfréntate a la IA (Bots)',
+                        label: 'Jugar Solo',
+                        description: 'Enfréntate a la IA',
                         iconText: '🃏',
                         colors: const <Color>[Color(0xFFE63946), Color(0xFFA01C27)],
                         glowColor: const Color(0x66E63946),
@@ -189,7 +186,7 @@ class MenuPrincipalView extends StatelessWidget {
                       const SizedBox(height: 14),
                       _MenuOptionCard(
                         label: 'Multijugador',
-                        description: 'Juega con amigos en red local',
+                        description: 'Juega con amigos en red',
                         iconText: '🌐',
                         colors: const <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
                         glowColor: const Color(0x594CC9F0),
@@ -198,20 +195,11 @@ class MenuPrincipalView extends StatelessWidget {
                       const SizedBox(height: 14),
                       _MenuOptionCard(
                         label: 'Configuración',
-                        description: 'Cuenta y opciones del juego',
+                        description: 'Cuenta y opciones',
                         iconText: '⚙️',
                         colors: const <Color>[Color(0xFF2A2A60), Color(0xFF16163A)],
                         glowColor: const Color(0x337A7AAA),
                         onTap: onSettings,
-                      ),
-                      const SizedBox(height: 14),
-                      _MenuOptionCard(
-                        label: 'Estadísticas',
-                        description: 'Partidas, victorias y récord',
-                        iconText: '📊',
-                        colors: const <Color>[Color(0xFFF57F17), Color(0xFFE65100)],
-                        glowColor: const Color(0x4DF57F17),
-                        onTap: onStats,
                       ),
                     ],
                   ),
