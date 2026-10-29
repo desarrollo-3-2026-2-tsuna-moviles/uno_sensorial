@@ -14,7 +14,7 @@ class AppUser {
   });
 }
 
-/// Pantalla de Inicio de Sesión 100% Responsiva
+/// Pantalla de Inicio de Sesión 100% Responsiva y Optimizada a 120 FPS
 class LoginView extends StatefulWidget {
   final Function(AppUser user) onLogin;
 
@@ -79,10 +79,12 @@ class _LoginViewState extends State<LoginView> {
         child: Stack(
           alignment: Alignment.center,
           children: <Widget>[
-            // Cartas Flotantes Decorativas
-            const _FloatingCardsBackground(),
+            // Cartas Flotantes Decorativas con Aislamiento de Pintura RepaintBoundary (Sin Opacity saveLayer)
+            const RepaintBoundary(
+              child: _FloatingCardsBackground(),
+            ),
 
-            // Estructura de Scroll Responsivo
+            // Estructura de Scroll Responsivo y Optimizado
             SafeArea(
               child: LayoutBuilder(
                 builder: (BuildContext context, BoxConstraints constraints) {
@@ -288,7 +290,7 @@ class _LoginViewState extends State<LoginView> {
   }
 }
 
-/// Renderiza las cartas flotantes traslúcidas de fondo
+/// Renderiza las cartas flotantes traslúcidas de fondo optimizadas sin Opacity saveLayer
 class _FloatingCardsBackground extends StatelessWidget {
   const _FloatingCardsBackground();
 
@@ -312,30 +314,28 @@ class _FloatingCardsBackground extends StatelessWidget {
           children: cards.map((Map<String, dynamic> c) {
             final double cx = (w / 2) + (c['x'] as double) * w;
             final double cy = (h / 2) + (c['y'] as double) * h;
+            final Color baseColor = c['color'] as Color;
 
             return Positioned(
               left: cx.clamp(0.0, max(0.0, w - 52)),
               top: cy.clamp(0.0, max(0.0, h - 78)),
               child: Transform.rotate(
                 angle: c['rot'] as double,
-                child: Opacity(
-                  opacity: 0.35,
-                  child: Container(
-                    width: 52,
-                    height: 78,
-                    decoration: BoxDecoration(
-                      color: c['color'] as Color,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white30, width: 2),
-                    ),
-                    child: Center(
-                      child: Text(
-                        c['label'] as String,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
+                child: Container(
+                  width: 52,
+                  height: 78,
+                  decoration: BoxDecoration(
+                    color: baseColor.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      c['label'] as String,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),

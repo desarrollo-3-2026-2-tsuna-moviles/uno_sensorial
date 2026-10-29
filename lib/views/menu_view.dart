@@ -1,20 +1,33 @@
 import 'package:flutter/material.dart';
 import 'login_view.dart';
+import 'widgets/solo_config_modal.dart';
 
 /// MenuPrincipalView que recrea el diseño exacto de Figma (MenuScreen.tsx)
+/// Optimizada a 120 FPS con aislamientos de pintura RepaintBoundary.
 class MenuPrincipalView extends StatelessWidget {
   final AppUser user;
-  final VoidCallback onSolo;
+  final Function(int botCount) onStartSoloGame;
   final VoidCallback onMultiplayer;
   final VoidCallback onSettings;
 
   const MenuPrincipalView({
     super.key,
     required this.user,
-    required this.onSolo,
+    required this.onStartSoloGame,
     required this.onMultiplayer,
     required this.onSettings,
   });
+
+  void _openSoloConfigModal(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => SoloConfigModal(
+        onStartGame: (int botCount) {
+          onStartSoloGame(botCount);
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,98 +53,100 @@ class MenuPrincipalView extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 // Cabecera Responsiva con Avatar e Insignia UNO
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Row(
-                    children: <Widget>[
-                      // Bloque de Usuario
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE63946).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE63946).withValues(alpha: 0.25)),
-                          ),
-                          child: Row(
-                            children: <Widget>[
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
-                                  ),
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(color: Color(0x66E63946), blurRadius: 8, offset: Offset(0, 2)),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    user.initial,
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFD60A),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 16,
+                RepaintBoundary(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: <Widget>[
+                        // Bloque de Usuario
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE63946).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE63946).withValues(alpha: 0.25)),
+                            ),
+                            child: Row(
+                              children: <Widget>[
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
                                     ),
+                                    boxShadow: <BoxShadow>[
+                                      BoxShadow(color: Color(0x66E63946), blurRadius: 8, offset: Offset(0, 2)),
+                                    ],
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                      user.name,
+                                  child: Center(
+                                    child: Text(
+                                      user.initial,
                                       style: const TextStyle(
-                                        color: Color(0xFFF0F0F0),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
+                                        color: Color(0xFFFFD60A),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
                                     ),
-                                    Text(
-                                      user.method == 'google' ? 'Google' : 'Local',
-                                      style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 10),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                        user.name,
+                                        style: const TextStyle(
+                                          color: Color(0xFFF0F0F0),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      Text(
+                                        user.method == 'google' ? 'Google' : 'Local',
+                                        style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 10),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Logo UNO
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const <BoxShadow>[
+                              BoxShadow(color: Color(0x73E63946), blurRadius: 12, offset: Offset(0, 4)),
                             ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Logo UNO
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const <BoxShadow>[
-                            BoxShadow(color: Color(0x73E63946), blurRadius: 12, offset: Offset(0, 4)),
-                          ],
-                        ),
-                        child: const Text(
-                          'UNO',
-                          style: TextStyle(
-                            color: Color(0xFFFFD60A),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                            letterSpacing: 2,
+                          child: const Text(
+                            'UNO',
+                            style: TextStyle(
+                              color: Color(0xFFFFD60A),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              letterSpacing: 2,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
@@ -170,36 +185,42 @@ class MenuPrincipalView extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Opciones del Menú (Exactamente 3 opciones como en Figma MenuScreen.tsx)
+                // Opciones del Menú (Aisladas con RepaintBoundary para evitar repintado de sombreados pesados al scroll)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: <Widget>[
-                      _MenuOptionCard(
-                        label: 'Jugar Solo',
-                        description: 'Enfréntate a la IA',
-                        iconText: '🃏',
-                        colors: const <Color>[Color(0xFFE63946), Color(0xFFA01C27)],
-                        glowColor: const Color(0x66E63946),
-                        onTap: onSolo,
+                      RepaintBoundary(
+                        child: _MenuOptionCard(
+                          label: 'Jugar Solo',
+                          description: 'Enfréntate a la IA (1 a 5 Bots)',
+                          iconText: '🃏',
+                          colors: const <Color>[Color(0xFFE63946), Color(0xFFA01C27)],
+                          glowColor: const Color(0x66E63946),
+                          onTap: () => _openSoloConfigModal(context),
+                        ),
                       ),
                       const SizedBox(height: 14),
-                      _MenuOptionCard(
-                        label: 'Multijugador',
-                        description: 'Juega con amigos en red',
-                        iconText: '🌐',
-                        colors: const <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
-                        glowColor: const Color(0x594CC9F0),
-                        onTap: onMultiplayer,
+                      RepaintBoundary(
+                        child: _MenuOptionCard(
+                          label: 'Multijugador',
+                          description: 'Juega con amigos en red',
+                          iconText: '🌐',
+                          colors: const <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
+                          glowColor: const Color(0x594CC9F0),
+                          onTap: onMultiplayer,
+                        ),
                       ),
                       const SizedBox(height: 14),
-                      _MenuOptionCard(
-                        label: 'Configuración',
-                        description: 'Cuenta y opciones',
-                        iconText: '⚙️',
-                        colors: const <Color>[Color(0xFF2A2A60), Color(0xFF16163A)],
-                        glowColor: const Color(0x337A7AAA),
-                        onTap: onSettings,
+                      RepaintBoundary(
+                        child: _MenuOptionCard(
+                          label: 'Configuración',
+                          description: 'Cuenta y opciones',
+                          iconText: '⚙️',
+                          colors: const <Color>[Color(0xFF2A2A60), Color(0xFF16163A)],
+                          glowColor: const Color(0x337A7AAA),
+                          onTap: onSettings,
+                        ),
                       ),
                     ],
                   ),

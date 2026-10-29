@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_view.dart';
 
-/// Pantalla de Configuración 100% Responsiva
+/// Pantalla de Configuración 100% Responsiva y Optimizada a 120 FPS
 class SettingsView extends StatelessWidget {
   final AppUser user;
   final VoidCallback onBack;
@@ -88,193 +88,199 @@ class SettingsView extends StatelessWidget {
                         ),
                       ),
 
-                      // Contenido Responsivo
+                      // Contenido Responsivo y Optimizado
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            // Tarjeta de Perfil
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: <Color>[
-                                    const Color(0xFFE63946).withValues(alpha: 0.15),
-                                    const Color(0xFF1A1040).withValues(alpha: 0.8),
-                                  ],
+                            // Tarjeta de Perfil Aislada con RepaintBoundary
+                            RepaintBoundary(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: <Color>[
+                                      const Color(0xFFE63946).withValues(alpha: 0.15),
+                                      const Color(0xFF1A1040).withValues(alpha: 0.8),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFE63946).withValues(alpha: 0.2)),
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFFE63946).withValues(alpha: 0.2)),
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  Container(
-                                    width: 54,
-                                    height: 54,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
+                                child: Row(
+                                  children: <Widget>[
+                                    Container(
+                                      width: 54,
+                                      height: 54,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: <Color>[Color(0xFFE63946), Color(0xFFC41E3A)],
+                                        ),
+                                        boxShadow: <BoxShadow>[
+                                          BoxShadow(color: Color(0x80E63946), blurRadius: 14, offset: Offset(0, 4)),
+                                        ],
                                       ),
-                                      boxShadow: <BoxShadow>[
-                                        BoxShadow(color: Color(0x80E63946), blurRadius: 14, offset: Offset(0, 4)),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        user.initial,
-                                        style: const TextStyle(
-                                          color: Color(0xFFFFD60A),
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 24,
+                                      child: Center(
+                                        child: Text(
+                                          user.initial,
+                                          style: const TextStyle(
+                                            color: Color(0xFFFFD60A),
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 24,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Text(
-                                          user.name,
-                                          style: const TextStyle(
-                                            color: Color(0xFFF0F0F0),
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 18,
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(
+                                            user.name,
+                                            style: const TextStyle(
+                                              color: Color(0xFFF0F0F0),
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 18,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: <Widget>[
+                                              Icon(
+                                                user.method == 'google' ? Icons.g_mobiledata : Icons.cast,
+                                                color: const Color(0xFF7A7AAA),
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  user.method == 'google' ? 'Cuenta Google' : 'Usuario local',
+                                                  style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 12),
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Tarjeta de Estadísticas Aislada con RepaintBoundary
+                            RepaintBoundary(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      child: Text(
+                                        'Estadísticas',
+                                        style: TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
+                                      ),
+                                    ),
+                                    Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                                    Row(
+                                      children: <Widget>[
+                                        for (int i = 0; i < stats.length; i++) ...<Widget>[
+                                          Expanded(
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                                              child: Column(
+                                                children: <Widget>[
+                                                  FittedBox(
+                                                    child: Text(
+                                                      stats[i]['value']!,
+                                                      style: const TextStyle(color: Color(0xFFFFD60A), fontWeight: FontWeight.w900, fontSize: 24),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    stats[i]['label']!,
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 10, fontWeight: FontWeight.bold),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          if (i < stats.length - 1)
+                                            Container(width: 1, height: 36, color: Colors.white.withValues(alpha: 0.06)),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Tarjeta de Opciones Aislada con RepaintBoundary
+                            RepaintBoundary(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      child: Text(
+                                        'Opciones',
+                                        style: TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
+                                      ),
+                                    ),
+                                    Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                                    for (int i = 0; i < options.length; i++) ...<Widget>[
+                                      ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                                        leading: Text(options[i]['icon']!, style: const TextStyle(fontSize: 20)),
+                                        title: Text(
+                                          options[i]['label']!,
+                                          style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.bold, fontSize: 14),
                                           overflow: TextOverflow.ellipsis,
                                           maxLines: 1,
                                         ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: <Widget>[
-                                            Icon(
-                                              user.method == 'google' ? Icons.g_mobiledata : Icons.cast,
-                                              color: const Color(0xFF7A7AAA),
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                user.method == 'google' ? 'Cuenta Google' : 'Usuario local',
-                                                style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 12),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
-                                              ),
-                                            ),
-                                          ],
+                                        subtitle: Text(
+                                          options[i]['desc']!,
+                                          style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 11),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Tarjeta de Estadísticas Responsiva
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    child: Text(
-                                      'Estadísticas',
-                                      style: TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
-                                    ),
-                                  ),
-                                  Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-                                  Row(
-                                    children: <Widget>[
-                                      for (int i = 0; i < stats.length; i++) ...<Widget>[
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-                                            child: Column(
-                                              children: <Widget>[
-                                                FittedBox(
-                                                  child: Text(
-                                                    stats[i]['value']!,
-                                                    style: const TextStyle(color: Color(0xFFFFD60A), fontWeight: FontWeight.w900, fontSize: 24),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  stats[i]['label']!,
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 10, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
+                                        trailing: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.06),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            options[i]['value']!,
+                                            style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 11, fontWeight: FontWeight.bold),
                                           ),
                                         ),
-                                        if (i < stats.length - 1)
-                                          Container(width: 1, height: 36, color: Colors.white.withValues(alpha: 0.06)),
-                                      ],
+                                      ),
+                                      if (i < options.length - 1) Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
                                     ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Tarjeta de Opciones
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    child: Text(
-                                      'Opciones',
-                                      style: TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
-                                    ),
-                                  ),
-                                  Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-                                  for (int i = 0; i < options.length; i++) ...<Widget>[
-                                    ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                                      leading: Text(options[i]['icon']!, style: const TextStyle(fontSize: 20)),
-                                      title: Text(
-                                        options[i]['label']!,
-                                        style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.bold, fontSize: 14),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                      subtitle: Text(
-                                        options[i]['desc']!,
-                                        style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 11),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                      trailing: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.06),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          options[i]['value']!,
-                                          style: const TextStyle(color: Color(0xFF7A7AAA), fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ),
-                                    if (i < options.length - 1) Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 14),

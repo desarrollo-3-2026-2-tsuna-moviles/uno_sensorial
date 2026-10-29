@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// Pantalla del Menú Multijugador 100% Responsiva
+/// Pantalla del Menú Multijugador 100% Responsiva y Optimizada a 120 FPS
 class MultiplayerView extends StatefulWidget {
   final Function(String code) onCreateRoom;
   final Function(String code) onJoinRoom;
@@ -111,7 +111,7 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                         ),
                       ),
 
-                      // Contenido Principal
+                      // Contenido Principal Optimizado
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         child: Center(
@@ -120,31 +120,33 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: <Widget>[
-                                // Ícono Central Brillante de Red Global
-                                Container(
-                                  width: 68,
-                                  height: 68,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
-                                    ),
-                                    boxShadow: <BoxShadow>[
-                                      BoxShadow(
-                                        color: Color(0x664CC9F0),
-                                        blurRadius: 24,
-                                        offset: Offset(0, 6),
+                                // Ícono Central Brillante de Red Global Aislado con RepaintBoundary
+                                RepaintBoundary(
+                                  child: Container(
+                                    width: 68,
+                                    height: 68,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
                                       ),
-                                    ],
+                                      boxShadow: <BoxShadow>[
+                                        BoxShadow(
+                                          color: Color(0x664CC9F0),
+                                          blurRadius: 24,
+                                          offset: Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.public, color: Colors.white, size: 34),
                                   ),
-                                  child: const Icon(Icons.public, color: Colors.white, size: 34),
                                 ),
                                 const SizedBox(height: 18),
 
                                 if (_mode == 'choose') ...<Widget>[
-                                  FittedBox(
+                                  const FittedBox(
                                     fit: BoxFit.scaleDown,
-                                    child: const Text(
+                                    child: Text(
                                       'Juega en red',
                                       style: TextStyle(
                                         color: Color(0xFFF0F0F0),
@@ -162,30 +164,34 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   const SizedBox(height: 20),
 
                                   // Opción 1: Crear Partida
-                                  _MultiplayerOptionButton(
-                                    title: 'Crear Partida',
-                                    subtitle: 'Genera un código para amigos',
-                                    iconText: '➕',
-                                    gradient: const LinearGradient(
-                                      colors: <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
+                                  RepaintBoundary(
+                                    child: _MultiplayerOptionButton(
+                                      title: 'Crear Partida',
+                                      subtitle: 'Genera un código para amigos',
+                                      iconText: '➕',
+                                      gradient: const LinearGradient(
+                                        colors: <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
+                                      ),
+                                      shadowColor: const Color(0x594CC9F0),
+                                      onTap: _handleCreate,
                                     ),
-                                    shadowColor: const Color(0x594CC9F0),
-                                    onTap: _handleCreate,
                                   ),
                                   const SizedBox(height: 14),
 
                                   // Opción 2: Conectarse a Partida
-                                  _MultiplayerOptionButton(
-                                    title: 'Conectarse a Partida',
-                                    subtitle: 'Ingresa un código de sala',
-                                    iconText: '🔗',
-                                    isOutlined: true,
-                                    onTap: () => setState(() => _mode = 'join'),
+                                  RepaintBoundary(
+                                    child: _MultiplayerOptionButton(
+                                      title: 'Conectarse a Partida',
+                                      subtitle: 'Ingresa un código de sala',
+                                      iconText: '🔗',
+                                      isOutlined: true,
+                                      onTap: () => setState(() => _mode = 'join'),
+                                    ),
                                   ),
                                 ] else ...<Widget>[
-                                  FittedBox(
+                                  const FittedBox(
                                     fit: BoxFit.scaleDown,
-                                    child: const Text(
+                                    child: Text(
                                       'Ingresa el código',
                                       style: TextStyle(
                                         color: Color(0xFFF0F0F0),

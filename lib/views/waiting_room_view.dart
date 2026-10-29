@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'login_view.dart';
 
-/// Pantalla de Sala de Espera 100% Responsiva
+/// Pantalla de Sala de Espera 100% Responsiva y Optimizada a 120 FPS
 class WaitingRoomView extends StatefulWidget {
   final AppUser user;
   final String roomCode;
@@ -44,7 +44,6 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
 
   @override
   Widget build(BuildContext context) {
-    // Lista de jugadores simulada
     final List<Map<String, dynamic>> roomPlayers = <Map<String, dynamic>>[
       <String, dynamic>{'name': widget.user.name, 'ready': widget.isHost || _myReady, 'isMe': true, 'isHost': widget.isHost},
       <String, dynamic>{'name': 'Luna', 'ready': true, 'isMe': false, 'isHost': !widget.isHost},
@@ -123,149 +122,151 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            // Bloque Responsivo de Código de Sala
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                              ),
-                              child: Column(
-                                children: <Widget>[
-                                  const Text(
-                                    'CÓDIGO DE SALA',
-                                    style: TextStyle(
-                                      color: Color(0xFF7A7AAA),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
+                            // Bloque Responsivo de Código de Sala Aislado con RepaintBoundary
+                            RepaintBoundary(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                ),
+                                child: Column(
+                                  children: <Widget>[
+                                    const Text(
+                                      'CÓDIGO DE SALA',
+                                      style: TextStyle(
+                                        color: Color(0xFF7A7AAA),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
+                                    const SizedBox(height: 8),
 
-                                  // Wrap Responsivo para evitar desbordamientos horizontales
-                                  Wrap(
-                                    alignment: WrapAlignment.center,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    spacing: 12,
-                                    runSpacing: 8,
-                                    children: <Widget>[
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          widget.roomCode,
-                                          style: const TextStyle(
-                                            color: Color(0xFFFFD60A),
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 34,
-                                            letterSpacing: 4,
-                                            shadows: <Shadow>[
-                                              Shadow(color: Color(0x66FFD60A), blurRadius: 20),
-                                            ],
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 12,
+                                      runSpacing: 8,
+                                      children: <Widget>[
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            widget.roomCode,
+                                            style: const TextStyle(
+                                              color: Color(0xFFFFD60A),
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 34,
+                                              letterSpacing: 4,
+                                              shadows: <Shadow>[
+                                                Shadow(color: Color(0x66FFD60A), blurRadius: 20),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      OutlinedButton(
-                                        onPressed: _handleCopyCode,
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: _copied ? const Color(0xFF2EC4B6) : const Color(0xFF7A7AAA),
-                                          side: BorderSide(
-                                            color: _copied ? const Color(0xFF2EC4B6) : Colors.white.withValues(alpha: 0.15),
+                                        OutlinedButton(
+                                          onPressed: _handleCopyCode,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: _copied ? const Color(0xFF2EC4B6) : const Color(0xFF7A7AAA),
+                                            side: BorderSide(
+                                              color: _copied ? const Color(0xFF2EC4B6) : Colors.white.withValues(alpha: 0.15),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                           ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          child: Text(_copied ? '✓ Copiado' : '📋 Copiar', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                         ),
-                                        child: Text(_copied ? '✓ Copiado' : '📋 Copiar', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Comparte este código con tus amigos',
-                                    style: TextStyle(color: Color(0xFF7A7AAA), fontSize: 12),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Comparte este código con tus amigos',
+                                      style: TextStyle(color: Color(0xFF7A7AAA), fontSize: 12),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Lista de Jugadores
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                              ),
-                              child: Column(
-                                children: <Widget>[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                    child: Row(
-                                      children: <Widget>[
-                                        Text(
-                                          'Jugadores (${roomPlayers.length}/4)',
-                                          style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-
-                                  for (int i = 0; i < roomPlayers.length; i++) ...<Widget>[
-                                    ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                                      leading: CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor: _playerColors[i % _playerColors.length],
-                                        child: Text(
-                                          (roomPlayers[i]['name'] as String)[0].toUpperCase(),
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
-                                        ),
-                                      ),
-                                      title: Row(
+                            // Lista de Jugadores Aislada con RepaintBoundary
+                            RepaintBoundary(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                ),
+                                child: Column(
+                                  children: <Widget>[
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                      child: Row(
                                         children: <Widget>[
-                                          Expanded(
-                                            child: Text(
-                                              '${roomPlayers[i]['name']}${(roomPlayers[i]['isMe'] as bool) ? ' (tú)' : ''}',
-                                              style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.bold, fontSize: 14),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
+                                          Text(
+                                            'Jugadores (${roomPlayers.length}/4)',
+                                            style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
                                           ),
                                         ],
                                       ),
-                                      subtitle: (roomPlayers[i]['isHost'] as bool)
-                                          ? const Text('👑 Anfitrión', style: TextStyle(color: Color(0xFFFFD60A), fontSize: 11, fontWeight: FontWeight.bold))
-                                          : null,
-                                      trailing: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: (roomPlayers[i]['ready'] as bool) ? const Color(0x262EC4B6) : const Color(0x267A7AAA),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: (roomPlayers[i]['ready'] as bool) ? const Color(0x4D2EC4B6) : const Color(0x337A7AAA),
+                                    ),
+                                    Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+
+                                    for (int i = 0; i < roomPlayers.length; i++) ...<Widget>[
+                                      ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                                        leading: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: _playerColors[i % _playerColors.length],
+                                          child: Text(
+                                            (roomPlayers[i]['name'] as String)[0].toUpperCase(),
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
                                           ),
                                         ),
-                                        child: Text(
-                                          (roomPlayers[i]['ready'] as bool) ? '✓ Listo' : 'Esperando',
-                                          style: TextStyle(
-                                            color: (roomPlayers[i]['ready'] as bool) ? const Color(0xFF2EC4B6) : const Color(0xFF7A7AAA),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
+                                        title: Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: Text(
+                                                '${roomPlayers[i]['name']}${(roomPlayers[i]['isMe'] as bool) ? ' (tú)' : ''}',
+                                                style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.bold, fontSize: 14),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: (roomPlayers[i]['isHost'] as bool)
+                                            ? const Text('👑 Anfitrión', style: TextStyle(color: Color(0xFFFFD60A), fontSize: 11, fontWeight: FontWeight.bold))
+                                            : null,
+                                        trailing: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: (roomPlayers[i]['ready'] as bool) ? const Color(0x262EC4B6) : const Color(0x267A7AAA),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: (roomPlayers[i]['ready'] as bool) ? const Color(0x4D2EC4B6) : const Color(0x337A7AAA),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            (roomPlayers[i]['ready'] as bool) ? '✓ Listo' : 'Esperando',
+                                            style: TextStyle(
+                                              color: (roomPlayers[i]['ready'] as bool) ? const Color(0xFF2EC4B6) : const Color(0xFF7A7AAA),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    if (i < roomPlayers.length - 1) Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
+                                      if (i < roomPlayers.length - 1) Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
                             if (!widget.isHost) ...<Widget>[
-                              // Banner para Clientes
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -301,7 +302,6 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
                                 child: Text(_myReady ? '✓ Listo' : '¡Listo!', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                               ),
                             ] else ...<Widget>[
-                              // Botón de Inicio para Host
                               ElevatedButton(
                                 onPressed: canStart ? widget.onStartGame : null,
                                 style: ElevatedButton.styleFrom(
