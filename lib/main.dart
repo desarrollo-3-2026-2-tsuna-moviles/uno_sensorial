@@ -88,9 +88,9 @@ class _NavigationFlowHandlerState extends State<_NavigationFlowHandler> {
     setState(() => _currentScreen = screen);
   }
 
-  void _startSolo3DGame(int botCount) {
+  void _startSolo3DGame(int botCount, [String difficulty = 'Normal']) {
     final Game3DViewModel game3DVM = Game3DViewModel();
-    game3DVM.setupSoloGame(botCount: botCount, difficulty: 'Normal');
+    game3DVM.setupSoloGame(botCount: botCount, difficulty: difficulty);
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -116,7 +116,7 @@ class _NavigationFlowHandlerState extends State<_NavigationFlowHandler> {
       case 'menu':
         return MenuPrincipalView(
           user: _currentUser!,
-          onStartSoloGame: (int botCount) => _startSolo3DGame(botCount),
+          onStartSoloGame: (int botCount, String difficulty) => _startSolo3DGame(botCount, difficulty),
           onMultiplayer: () => _navigateTo('multiplayer'),
           onSettings: () => _navigateTo('settings'),
         );
@@ -159,7 +159,7 @@ class _NavigationFlowHandlerState extends State<_NavigationFlowHandler> {
       default:
         return MenuPrincipalView(
           user: _currentUser!,
-          onStartSoloGame: (int botCount) => _startSolo3DGame(botCount),
+          onStartSoloGame: (int botCount, String difficulty) => _startSolo3DGame(botCount, difficulty),
           onMultiplayer: () => _navigateTo('multiplayer'),
           onSettings: () => _navigateTo('settings'),
         );

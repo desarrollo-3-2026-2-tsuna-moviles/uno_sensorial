@@ -6,7 +6,7 @@ import 'widgets/solo_config_modal.dart';
 /// Optimizada a 120 FPS con aislamientos de pintura RepaintBoundary.
 class MenuPrincipalView extends StatelessWidget {
   final AppUser user;
-  final Function(int botCount) onStartSoloGame;
+  final Function(int botCount, String difficulty) onStartSoloGame;
   final VoidCallback onMultiplayer;
   final VoidCallback onSettings;
 
@@ -22,8 +22,8 @@ class MenuPrincipalView extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (_) => SoloConfigModal(
-        onStartGame: (int botCount) {
-          onStartSoloGame(botCount);
+        onStartGame: (int botCount, String difficulty) {
+          onStartSoloGame(botCount, difficulty);
         },
       ),
     );
