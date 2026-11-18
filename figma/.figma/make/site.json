@@ -1,0 +1,10 @@
+{
+  "description": "Enjoy a digital version of the classic UNO card game with options for solo play or multiplayer sessions, featuring easy login and customizable settings.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
