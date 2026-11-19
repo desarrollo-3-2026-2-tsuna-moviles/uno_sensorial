@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/player_model.dart';
+import '../viewmodels/lobby_viewmodel.dart';
 import 'login_view.dart';
 
 /// Pantalla de Sala de Espera 100% Responsiva y Optimizada a 120 FPS
@@ -7,6 +9,7 @@ class WaitingRoomView extends StatefulWidget {
   final AppUser user;
   final String roomCode;
   final bool isHost;
+  final LobbyViewModel lobbyViewModel; // RF-28: datos reales de la red
   final VoidCallback onStartGame;
   final VoidCallback onBack;
 
@@ -15,6 +18,7 @@ class WaitingRoomView extends StatefulWidget {
     required this.user,
     required this.roomCode,
     required this.isHost,
+    required this.lobbyViewModel,
     required this.onStartGame,
     required this.onBack,
   });
@@ -26,6 +30,31 @@ class WaitingRoomView extends StatefulWidget {
 class _WaitingRoomViewState extends State<WaitingRoomView> {
   bool _myReady = false;
   bool _copied = false;
+  bool _partidaIniciada = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // RF-28: cada vez que la red cambia (entra o sale alguien), se redibuja la lista
+    widget.lobbyViewModel.addListener(_onLobbyChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.lobbyViewModel.removeListener(_onLobbyChanged);
+    super.dispose();
+  }
+
+  void _onLobbyChanged() {
+    if (!mounted) return;
+    setState(() {});
+
+    // Si soy cliente y el host inició la partida, entro yo también
+    if (!widget.isHost && widget.lobbyViewModel.gameStarted && !_partidaIniciada) {
+      _partidaIniciada = true;
+      widget.onStartGame();
+    }
+  }
 
   final List<Color> _playerColors = const <Color>[
     Color(0xFFE63946),
@@ -44,11 +73,18 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> roomPlayers = <Map<String, dynamic>>[
-      <String, dynamic>{'name': widget.user.name, 'ready': widget.isHost || _myReady, 'isMe': true, 'isHost': widget.isHost},
-      <String, dynamic>{'name': 'Luna', 'ready': true, 'isMe': false, 'isHost': !widget.isHost},
-      <String, dynamic>{'name': 'Rayo', 'ready': false, 'isMe': false, 'isHost': false},
-    ];
+    // RF-28: lista real de jugadores conectados (sin límite fijo)
+    final List<Map<String, dynamic>> roomPlayers = <Map<String, dynamic>>[];
+    for (final PlayerModel p in widget.lobbyViewModel.players) {
+      final bool isMe = p.id == widget.lobbyViewModel.myPlayerId;
+      final bool esHost = p.seatIndex == 0;
+      roomPlayers.add(<String, dynamic>{
+        'name': p.name.isEmpty ? 'Jugador' : p.name,
+        'ready': isMe ? (widget.isHost || _myReady) : true,
+        'isMe': isMe,
+        'isHost': esHost,
+      });
+    }
 
     final bool canStart = widget.isHost && roomPlayers.length >= 2;
 
@@ -134,7 +170,7 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
                                 child: Column(
                                   children: <Widget>[
                                     const Text(
-                                      'CÓDIGO DE SALA',
+                                      'IP DE LA SALA',
                                       style: TextStyle(
                                         color: Color(0xFF7A7AAA),
                                         fontSize: 11,
@@ -181,7 +217,7 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
                                     ),
                                     const SizedBox(height: 8),
                                     const Text(
-                                      'Comparte este código con tus amigos',
+                                      'Comparte esta IP con tus amigos (misma red Wi-Fi)',
                                       style: TextStyle(color: Color(0xFF7A7AAA), fontSize: 12),
                                       textAlign: TextAlign.center,
                                     ),
@@ -206,7 +242,7 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
                                       child: Row(
                                         children: <Widget>[
                                           Text(
-                                            'Jugadores (${roomPlayers.length}/4)',
+                                            'Jugadores (${roomPlayers.length})',
                                             style: const TextStyle(color: Color(0xFFF0F0F0), fontWeight: FontWeight.w900, fontSize: 16),
                                           ),
                                         ],

@@ -7,7 +7,7 @@ import 'package:vector_math/vector_math_64.dart' as vmath;
 /// Modelo de información de jugador transmitido por la red LAN
 class PlayerInfo {
   final String id;
-  final String name;
+  String name; // RF-28: el host lo actualiza cuando el cliente envía su nombre
   final int seatIndex;
   vmath.Quaternion rotation;
 
@@ -35,6 +35,13 @@ class PlayerInfo {
 class LanNetworkService extends ChangeNotifier {
   static const int defaultPort = 4040;
 
+  /// RF-29/RF-30: Frecuencia de sincronización de vectores = 20 Hz (1000 ms / 20 = 50 ms)
+  static const int syncIntervalMs = 50;
+  Timer? _syncTimer;
+
+  /// Se vuelve true cuando el host inicia la partida (se avisa a todos los clientes)
+  bool _gameStarted = false;
+
   HttpServer? _server;
   WebSocket? _clientSocket;
   final List<WebSocket> _hostSockets = <WebSocket>[];
@@ -53,6 +60,7 @@ class LanNetworkService extends ChangeNotifier {
   bool get isConnected => _isConnected;
   String get myPlayerId => _myPlayerId;
   int get mySeatIndex => _mySeatIndex;
+  bool get gameStarted => _gameStarted;
   List<PlayerInfo> get players => List<PlayerInfo>.unmodifiable(_players);
   Map<String, vmath.Quaternion> get playerOrientations => Map<String, vmath.Quaternion>.unmodifiable(_playerOrientations);
 
@@ -91,7 +99,8 @@ class LanNetworkService extends ChangeNotifier {
     return _localIp;
   }
 
-  Future<bool> startHost({int port = defaultPort}) async {
+  /// RF-25: Crear sala. Este celular se vuelve el servidor (host).
+  Future<bool> startHost({String playerName = 'Anfitrión', int port = defaultPort}) async {
     try {
       await stopService();
 
@@ -103,7 +112,7 @@ class LanNetworkService extends ChangeNotifier {
 
       final PlayerInfo hostPlayer = PlayerInfo(
         id: _myPlayerId,
-        name: 'Jugador 1 (Host)',
+        name: playerName,
         seatIndex: 0,
       );
       _players.clear();
@@ -154,7 +163,7 @@ class LanNetworkService extends ChangeNotifier {
 
     socket.listen(
       (dynamic data) {
-        _processReceivedMessage(data as String);
+        _processReceivedMessage(data as String, fromClientId: clientId);
       },
       onDone: () {
         _hostSockets.remove(socket);
@@ -171,7 +180,8 @@ class LanNetworkService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> connectToHost(String hostIp, {int port = defaultPort}) async {
+  /// RF-27: Unirse a una sala escribiendo la IP del host.
+  Future<bool> connectToHost(String hostIp, {String playerName = 'Jugador', int port = defaultPort}) async {
     try {
       await stopService();
 
@@ -180,6 +190,13 @@ class LanNetworkService extends ChangeNotifier {
       _clientSocket = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 5));
 
       _isConnected = true;
+
+      // RF-28: Le enviamos al host nuestro nombre para que aparezca en el lobby
+      final Map<String, dynamic> joinPayload = <String, dynamic>{
+        'type': 'join',
+        'name': playerName,
+      };
+      _clientSocket!.add(jsonEncode(joinPayload));
 
       _clientSocket!.listen(
         (dynamic data) {
@@ -205,7 +222,7 @@ class LanNetworkService extends ChangeNotifier {
     }
   }
 
-  void _processReceivedMessage(String jsonStr) {
+  void _processReceivedMessage(String jsonStr, {String? fromClientId}) {
     try {
       final Map<String, dynamic> msg = jsonDecode(jsonStr) as Map<String, dynamic>;
       final String type = msg['type'] as String;
@@ -216,6 +233,21 @@ class LanNetworkService extends ChangeNotifier {
         _updatePlayersFromList(msg['players'] as List<dynamic>);
       } else if (type == 'room_state') {
         _updatePlayersFromList(msg['players'] as List<dynamic>);
+      } else if (type == 'join') {
+        // Solo el host recibe este mensaje: actualiza el nombre del jugador y avisa a todos
+        if (_isHost && fromClientId != null) {
+          for (final PlayerInfo p in _players) {
+            if (p.id == fromClientId) {
+              p.name = msg['name'] as String;
+            }
+          }
+          _broadcastRoomState();
+          notifyListeners();
+        }
+      } else if (type == 'start_game') {
+        // El host inició la partida
+        _gameStarted = true;
+        notifyListeners();
       } else if (type == 'motion') {
         final String senderId = msg['playerId'] as String;
         final double x = (msg['x'] as num).toDouble();
@@ -271,6 +303,29 @@ class LanNetworkService extends ChangeNotifier {
     }
   }
 
+  /// El host le avisa a todos los clientes que la partida comenzó
+  void sendStartGame() {
+    if (!_isHost) return;
+    _gameStarted = true;
+    final Map<String, dynamic> payload = <String, dynamic>{'type': 'start_game'};
+    _broadcastToClients(jsonEncode(payload));
+    notifyListeners();
+  }
+
+  /// RF-29/RF-30: Envía la orientación del celular (cuaternión) 20 veces por segundo.
+  /// [leerRotacion] es una función que devuelve la rotación actual del sensor.
+  void startMotionSync(vmath.Quaternion Function() leerRotacion) {
+    stopMotionSync();
+    _syncTimer = Timer.periodic(const Duration(milliseconds: syncIntervalMs), (_) {
+      sendLocalMotion(leerRotacion());
+    });
+  }
+
+  void stopMotionSync() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
   void _broadcastRoomState() {
     final Map<String, dynamic> payload = <String, dynamic>{
       'type': 'room_state',
@@ -288,6 +343,8 @@ class LanNetworkService extends ChangeNotifier {
   }
 
   Future<void> stopService() async {
+    stopMotionSync();
+    _gameStarted = false;
     for (final WebSocket s in _hostSockets) {
       try {
         await s.close();

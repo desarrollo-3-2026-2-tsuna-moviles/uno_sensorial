@@ -19,6 +19,7 @@ class LobbyViewModel extends ChangeNotifier {
   bool get isConnected => netService.isConnected;
   String get myPlayerId => netService.myPlayerId;
   int get mySeatIndex => netService.mySeatIndex;
+  bool get gameStarted => netService.gameStarted;
 
   List<PlayerModel> get players {
     return netService.players
@@ -36,22 +37,36 @@ class LobbyViewModel extends ChangeNotifier {
     await netService.fetchLocalIp();
   }
 
-  Future<bool> startHost() async {
+  Future<bool> startHost(String playerName) async {
     _isLoading = true;
     notifyListeners();
-    final bool success = await netService.startHost();
+    final bool success = await netService.startHost(playerName: playerName);
     _isLoading = false;
     notifyListeners();
     return success;
   }
 
-  Future<bool> connectToHost(String hostIp) async {
+  Future<bool> connectToHost(String hostIp, String playerName) async {
     _isLoading = true;
     notifyListeners();
-    final bool success = await netService.connectToHost(hostIp);
+    final bool success = await netService.connectToHost(hostIp, playerName: playerName);
     _isLoading = false;
     notifyListeners();
     return success;
+  }
+
+  /// Solo el host: inicia la partida para todos
+  void startGame() {
+    netService.sendStartGame();
+  }
+
+  /// RF-29/RF-30: Empieza a enviar la orientación a 20 Hz
+  void startMotionSync(vmath.Quaternion Function() leerRotacion) {
+    netService.startMotionSync(leerRotacion);
+  }
+
+  void stopMotionSync() {
+    netService.stopMotionSync();
   }
 
   Future<void> disconnect() async {
