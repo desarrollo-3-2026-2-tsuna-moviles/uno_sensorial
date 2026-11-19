@@ -40,13 +40,14 @@ class _MultiplayerViewState extends State<MultiplayerView> {
     widget.onCreateRoom(code);
   }
 
+  /// RF-27: Unirse escribiendo la IP del anfitrión (ej: 192.168.1.10)
   void _handleJoin() {
-    final String code = _codeController.text.trim().toUpperCase();
-    if (code.length < 4) {
-      setState(() => _errorMessage = 'Ingresa un código válido');
+    final String ip = _codeController.text.trim();
+    if (ip.split('.').length != 4) {
+      setState(() => _errorMessage = 'Ingresa una IP válida (ej: 192.168.1.10)');
       return;
     }
-    widget.onJoinRoom(code);
+    widget.onJoinRoom(ip);
   }
 
   @override
@@ -167,7 +168,7 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   RepaintBoundary(
                                     child: _MultiplayerOptionButton(
                                       title: 'Crear Partida',
-                                      subtitle: 'Genera un código para amigos',
+                                      subtitle: 'Tu celular será el anfitrión',
                                       iconText: '➕',
                                       gradient: const LinearGradient(
                                         colors: <Color>[Color(0xFF4CC9F0), Color(0xFF1565A3)],
@@ -182,7 +183,7 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   RepaintBoundary(
                                     child: _MultiplayerOptionButton(
                                       title: 'Conectarse a Partida',
-                                      subtitle: 'Ingresa un código de sala',
+                                      subtitle: 'Ingresa la IP del anfitrión',
                                       iconText: '🔗',
                                       isOutlined: true,
                                       onTap: () => setState(() => _mode = 'join'),
@@ -192,7 +193,7 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   const FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Text(
-                                      'Ingresa el código',
+                                      'Ingresa la IP',
                                       style: TextStyle(
                                         color: Color(0xFFF0F0F0),
                                         fontWeight: FontWeight.w900,
@@ -202,7 +203,7 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
-                                    'Pídele el código al anfitrión de la sala',
+                                    'Pídele la IP al anfitrión (misma red Wi-Fi)',
                                     style: TextStyle(color: Color(0xFF7A7AAA), fontSize: 13),
                                     textAlign: TextAlign.center,
                                   ),
@@ -211,17 +212,17 @@ class _MultiplayerViewState extends State<MultiplayerView> {
                                   // Campo de Texto para Código de Sala
                                   TextField(
                                     controller: _codeController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    maxLength: 8,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    maxLength: 15,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Color(0xFFF0F0F0),
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
-                                      letterSpacing: 4,
+                                      letterSpacing: 1,
                                     ),
                                     decoration: InputDecoration(
-                                      hintText: 'Ej: ABCD12',
+                                      hintText: 'Ej: 192.168.1.10',
                                       hintStyle: TextStyle(
                                         color: Colors.white.withValues(alpha: 0.25),
                                         fontSize: 18,

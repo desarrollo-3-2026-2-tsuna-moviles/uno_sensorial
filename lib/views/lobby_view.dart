@@ -29,7 +29,7 @@ class _LobbyViewState extends State<LobbyView> {
   }
 
   void _onStartHost() async {
-    final bool success = await widget.lobbyViewModel.startHost();
+    final bool success = await widget.lobbyViewModel.startHost('Anfitrión');
     if (!mounted) return;
 
     if (success) {
@@ -58,7 +58,7 @@ class _LobbyViewState extends State<LobbyView> {
       return;
     }
 
-    final bool success = await widget.lobbyViewModel.connectToHost(hostIp);
+    final bool success = await widget.lobbyViewModel.connectToHost(hostIp, 'Jugador');
     if (!mounted) return;
 
     if (success) {
