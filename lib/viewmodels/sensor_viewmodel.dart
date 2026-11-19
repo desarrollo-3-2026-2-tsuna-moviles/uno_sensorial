@@ -10,11 +10,6 @@ class SensorViewModel extends ChangeNotifier {
   vmath.Quaternion _currentQuaternion = vmath.Quaternion.identity();
   vmath.Quaternion _calibrationOffset = vmath.Quaternion.identity();
 
-  bool _invertPitch = true;
-  bool _invertRoll = false;
-  bool _invertYaw = false;
-  final bool _enableCompass = true;
-
   bool _isSimulationMode = false;
   double _simulatedPitch = 0.0;
   double _simulatedRoll = 0.0;
@@ -34,18 +29,14 @@ class SensorViewModel extends ChangeNotifier {
         _statusText = status;
         notifyListeners();
       },
-      invertPitch: _invertPitch,
-      invertRoll: _invertRoll,
-      invertYaw: _invertYaw,
-      enableCompass: _enableCompass,
     );
   }
 
   vmath.Quaternion get rotationQuaternion {
     if (_isSimulationMode) {
-      final double px = _invertPitch ? -_simulatedPitch : _simulatedPitch;
-      final double ry = _invertRoll ? -_simulatedRoll : _simulatedRoll;
-      final double yz = _invertYaw ? -_simulatedYaw : _simulatedYaw;
+      final double px = invertPitch ? -_simulatedPitch : _simulatedPitch;
+      final double ry = invertRoll ? -_simulatedRoll : _simulatedRoll;
+      final double yz = invertYaw ? -_simulatedYaw : _simulatedYaw;
 
       final vmath.Quaternion qX = vmath.Quaternion.axisAngle(vmath.Vector3(1, 0, 0), px);
       final vmath.Quaternion qY = vmath.Quaternion.axisAngle(vmath.Vector3(0, 1, 0), yz);
@@ -53,7 +44,10 @@ class SensorViewModel extends ChangeNotifier {
       return qY * qX * qZ;
     }
 
-    final vmath.Quaternion result = _calibrationOffset * _currentQuaternion;
+    // La calibración se aplica a la derecha (en los ejes propios del celular).
+    // Si se aplicara a la izquierda, la dirección de la brújula guardada al calibrar
+    // torcería el eje del pitch y la carta se voltearía en diagonal o de lado.
+    final vmath.Quaternion result = _currentQuaternion * _calibrationOffset;
     result.normalize();
     return result;
   }
@@ -84,11 +78,20 @@ class SensorViewModel extends ChangeNotifier {
   }
 
   bool get isSimulationMode => _isSimulationMode;
-  bool get invertPitch => _invertPitch;
-  bool get invertRoll => _invertRoll;
-  bool get invertYaw => _invertYaw;
+  // La configuración vive en el servicio, así que los cambios se aplican en tiempo real.
+  bool get invertPitch => _service.invertPitch;
+  bool get invertRoll => _service.invertRoll;
+  bool get invertYaw => _service.invertYaw;
+  bool get enableCompass => _service.enableCompass;
+  bool get useGyroscope => _service.useGyroscope;
+
+  /// Lecturas crudas de los sensores (para la detección de gestos).
+  Stream<SensorSample> get accelerometerSamples => _service.accelerometerSamples;
+  Stream<SensorSample> get gyroscopeSamples => _service.gyroscopeSamples;
   bool get hasMagnetometer => _service.hasMagnetometer;
+  bool get hasGyroscope => _service.hasGyroscope;
   String get statusText => _statusText;
+  Orientation get currentOrientation => _service.orientation;
 
   void updateOrientation(Orientation orientation) {
     if (_service.orientation != orientation) {
@@ -98,6 +101,12 @@ class SensorViewModel extends ChangeNotifier {
   }
 
   void calibrateCurrentPosition() {
+    // Sin brújula, el yaw se re-centra solo hacia 0: se pone a 0 también aquí para
+    // que la referencia de calibración y el re-centrado coincidan.
+    if (!_service.enableCompass) {
+      _service.resetYaw();
+      _currentQuaternion = _service.currentQuaternion;
+    }
     _calibrationOffset = vmath.Quaternion(
       -_currentQuaternion.x,
       -_currentQuaternion.y,
@@ -113,17 +122,29 @@ class SensorViewModel extends ChangeNotifier {
   }
 
   void toggleInvertPitch() {
-    _invertPitch = !_invertPitch;
+    _service.invertPitch = !_service.invertPitch;
     notifyListeners();
   }
 
   void toggleInvertRoll() {
-    _invertRoll = !_invertRoll;
+    _service.invertRoll = !_service.invertRoll;
     notifyListeners();
   }
 
   void toggleInvertYaw() {
-    _invertYaw = !_invertYaw;
+    _service.invertYaw = !_service.invertYaw;
+    notifyListeners();
+  }
+
+  /// Activa o desactiva el giroscopio en la fusión de sensores.
+  void toggleGyroscope() {
+    _service.useGyroscope = !_service.useGyroscope;
+    notifyListeners();
+  }
+
+  /// Activa o desactiva la corrección del yaw con la brújula (magnetómetro).
+  void toggleCompass() {
+    _service.enableCompass = !_service.enableCompass;
     notifyListeners();
   }
 
