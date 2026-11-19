@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
-import 'sensor_3d_controller.dart';
+import 'package:uno_game/viewmodels/sensor_viewmodel.dart';
 
 /// Widget que renderiza el bloque 3D (mano de cartas UNO) en la prueba manual
 class Panel3DView extends StatelessWidget {
-  final Sensor3DController controller;
+  final SensorViewModel controller;
 
   const Panel3DView({
     super.key,
@@ -233,7 +233,7 @@ class _GridPainter extends CustomPainter {
 
 /// Panel flotante de telemetría e interactividad con TODOS los botones de control
 class _TelemetryOverlay extends StatelessWidget {
-  final Sensor3DController controller;
+  final SensorViewModel controller;
 
   const _TelemetryOverlay({required this.controller});
 
@@ -270,7 +270,7 @@ class _TelemetryOverlay extends StatelessWidget {
                   Text(
                     controller.isSimulationMode
                         ? 'Simulación 3D'
-                        : '${controller.sensorStatusText} (${isLandscape ? 'Horiz.' : 'Vert.'})',
+                        : '${controller.statusText} (${isLandscape ? 'Horiz.' : 'Vert.'})',
                     style: TextStyle(
                       color: controller.hasMagnetometer ? Colors.greenAccent : Colors.orangeAccent,
                       fontWeight: FontWeight.bold,
@@ -329,6 +329,38 @@ class _TelemetryOverlay extends StatelessWidget {
                     ),
                     child: Text(
                       controller.invertYaw ? 'Inv. Yaw: SÍ' : 'Inv. Yaw: NO',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: controller.toggleGyroscope,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: controller.useGyroscope ? Colors.greenAccent : Colors.white70,
+                      side: BorderSide(
+                        color: controller.useGyroscope ? Colors.greenAccent : Colors.white24,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      controller.useGyroscope ? 'Giroscopio: ON' : 'Giroscopio: OFF',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: controller.toggleCompass,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: controller.enableCompass ? Colors.greenAccent : Colors.white70,
+                      side: BorderSide(
+                        color: controller.enableCompass ? Colors.greenAccent : Colors.white24,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      controller.enableCompass ? 'Brújula: ON' : 'Brújula: OFF',
                       style: const TextStyle(fontSize: 10),
                     ),
                   ),

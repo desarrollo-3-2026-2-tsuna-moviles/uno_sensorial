@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uno_game/viewmodels/sensor_viewmodel.dart';
 import 'panel_3d_view.dart';
-import 'sensor_3d_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,12 +40,13 @@ class Test3DScreen extends StatefulWidget {
 }
 
 class _Test3DScreenState extends State<Test3DScreen> {
-  late final Sensor3DController _sensorController;
+  late final SensorViewModel _sensorController;
 
   @override
   void initState() {
     super.initState();
-    _sensorController = Sensor3DController();
+    // Usa el ViewModel real de la app (SensorService: RF-17 / RF-18).
+    _sensorController = SensorViewModel();
   }
 
   @override
