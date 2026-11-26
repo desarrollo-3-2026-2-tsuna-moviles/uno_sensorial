@@ -44,7 +44,14 @@ class LanNetworkService extends ChangeNotifier {
 
   HttpServer? _server;
   WebSocket? _clientSocket;
-  final List<WebSocket> _hostSockets = <WebSocket>[];
+
+  /// Sockets de los clientes conectados (solo host), indexados por id de jugador.
+  final Map<String, WebSocket> _hostSockets = <String, WebSocket>{};
+
+  /// Contador incremental para ids de cliente: nunca se reutiliza un id dentro de una sala.
+  int _nextClientNumber = 1;
+
+  bool _disposed = false;
 
   String _localIp = 'Obteniendo IP...';
   bool _isHost = false;
@@ -77,7 +84,7 @@ class LanNetworkService extends ChangeNotifier {
 
       for (final NetworkInterface interface in interfaces) {
         for (final InternetAddress address in interface.addresses) {
-          if (!address.isLoopback && address.address.startsWith('192.168.') || address.address.startsWith('10.')) {
+          if (!address.isLoopback && _isPrivateLanAddress(address.address)) {
             _localIp = address.address;
             notifyListeners();
             return _localIp;
@@ -99,6 +106,16 @@ class LanNetworkService extends ChangeNotifier {
     return _localIp;
   }
 
+  /// Rangos privados RFC 1918: 10.0.0.0/8, 172.16.0.0/12 y 192.168.0.0/16.
+  static bool _isPrivateLanAddress(String ip) {
+    final List<String> parts = ip.split('.');
+    if (parts.length != 4) return false;
+    final int? a = int.tryParse(parts[0]);
+    final int? b = int.tryParse(parts[1]);
+    if (a == null || b == null) return false;
+    return a == 10 || (a == 172 && b >= 16 && b <= 31) || (a == 192 && b == 168);
+  }
+
   /// RF-25: Crear sala. Este celular se vuelve el servidor (host).
   Future<bool> startHost({String playerName = 'Anfitrión', int port = defaultPort}) async {
     try {
@@ -117,6 +134,7 @@ class LanNetworkService extends ChangeNotifier {
       );
       _players.clear();
       _players.add(hostPlayer);
+      _nextClientNumber = 1;
       _playerOrientations[_myPlayerId] = vmath.Quaternion.identity();
 
       _server!.listen((HttpRequest request) async {
@@ -138,10 +156,14 @@ class LanNetworkService extends ChangeNotifier {
   }
 
   void _handleNewClientConnection(WebSocket socket) {
-    _hostSockets.add(socket);
-
-    final int newSeatIndex = _players.length;
-    final String clientId = 'player_$newSeatIndex';
+    // El asiento es el primer índice libre; el id es único aunque otros jugadores hayan salido.
+    final Set<int> takenSeats = _players.map((PlayerInfo p) => p.seatIndex).toSet();
+    int newSeatIndex = 1;
+    while (takenSeats.contains(newSeatIndex)) {
+      newSeatIndex++;
+    }
+    final String clientId = 'player_${_nextClientNumber++}';
+    _hostSockets[clientId] = socket;
     final PlayerInfo newPlayer = PlayerInfo(
       id: clientId,
       name: 'Jugador ${newSeatIndex + 1}',
@@ -166,14 +188,16 @@ class LanNetworkService extends ChangeNotifier {
         _processReceivedMessage(data as String, fromClientId: clientId);
       },
       onDone: () {
-        _hostSockets.remove(socket);
+        // Solo limpiar si este socket sigue registrado (stopService ya pudo haberlo cerrado).
+        if (_hostSockets[clientId] != socket) return;
+        _hostSockets.remove(clientId);
         _players.removeWhere((PlayerInfo p) => p.id == clientId);
         _playerOrientations.remove(clientId);
         _broadcastRoomState();
         notifyListeners();
       },
       onError: (_) {
-        _hostSockets.remove(socket);
+        // onDone se dispara después y hace la limpieza.
       },
     );
 
@@ -222,51 +246,98 @@ class LanNetworkService extends ChangeNotifier {
     }
   }
 
+  /// Largo máximo del nombre que un cliente puede enviar al unirse.
+  static const int maxNameLength = 20;
+
+  /// Punto de entrada de todos los mensajes. [fromClientId] solo viene cuando
+  /// el host recibe desde el socket de un cliente.
   void _processReceivedMessage(String jsonStr, {String? fromClientId}) {
     try {
-      final Map<String, dynamic> msg = jsonDecode(jsonStr) as Map<String, dynamic>;
-      final String type = msg['type'] as String;
+      final Object? decoded = jsonDecode(jsonStr);
+      if (decoded is! Map<String, dynamic>) return;
+      final Object? type = decoded['type'];
+      if (type is! String) return;
 
-      if (type == 'init') {
-        _myPlayerId = msg['playerId'] as String;
-        _mySeatIndex = msg['seatIndex'] as int;
-        _updatePlayersFromList(msg['players'] as List<dynamic>);
-      } else if (type == 'room_state') {
-        _updatePlayersFromList(msg['players'] as List<dynamic>);
-      } else if (type == 'join') {
-        // Solo el host recibe este mensaje: actualiza el nombre del jugador y avisa a todos
-        if (_isHost && fromClientId != null) {
-          for (final PlayerInfo p in _players) {
-            if (p.id == fromClientId) {
-              p.name = msg['name'] as String;
-            }
-          }
-          _broadcastRoomState();
-          notifyListeners();
-        }
-      } else if (type == 'start_game') {
-        // El host inició la partida
-        _gameStarted = true;
-        notifyListeners();
-      } else if (type == 'motion') {
-        final String senderId = msg['playerId'] as String;
-        final double x = (msg['x'] as num).toDouble();
-        final double y = (msg['y'] as num).toDouble();
-        final double z = (msg['z'] as num).toDouble();
-        final double w = (msg['w'] as num).toDouble();
-
-        _playerOrientations[senderId] = vmath.Quaternion(x, y, z, w);
-
-        if (_isHost) {
-          _broadcastToClients(jsonStr, excludeSenderId: senderId);
-        }
-
-        notifyListeners();
+      if (fromClientId != null) {
+        if (_isHost) _handleMessageFromClient(type, decoded, fromClientId);
+      } else if (!_isHost) {
+        _handleMessageFromHost(type, decoded);
       }
     } catch (e) {
       debugPrint('Error procesando mensaje JSON: $e');
     }
   }
+
+  /// Host: un cliente solo puede enviar su nombre ('join') y su movimiento ('motion').
+  /// Cualquier otro tipo (init, room_state, start_game...) se ignora: solo el host los emite.
+  void _handleMessageFromClient(String type, Map<String, dynamic> msg, String clientId) {
+    if (type == 'join') {
+      final String? name = _sanitizeName(msg['name']);
+      if (name == null) return;
+      for (final PlayerInfo p in _players) {
+        if (p.id == clientId) p.name = name;
+      }
+      _broadcastRoomState();
+      notifyListeners();
+    } else if (type == 'motion') {
+      // El remitente es siempre el dueño del socket, nunca el 'playerId' que diga el mensaje.
+      final vmath.Quaternion? q = _parseQuaternion(msg);
+      if (q == null) return;
+      _playerOrientations[clientId] = q;
+      _broadcastToClients(jsonEncode(_motionPayload(clientId, q)), excludeSenderId: clientId);
+      notifyListeners();
+    }
+  }
+
+  /// Cliente: mensajes que solo el host puede enviar.
+  void _handleMessageFromHost(String type, Map<String, dynamic> msg) {
+    if (type == 'init') {
+      _myPlayerId = msg['playerId'] as String;
+      _mySeatIndex = msg['seatIndex'] as int;
+      _updatePlayersFromList(msg['players'] as List<dynamic>);
+    } else if (type == 'room_state') {
+      _updatePlayersFromList(msg['players'] as List<dynamic>);
+    } else if (type == 'start_game') {
+      _gameStarted = true;
+      notifyListeners();
+    } else if (type == 'motion') {
+      final Object? senderId = msg['playerId'];
+      // Ignorar ecos de nuestro propio movimiento: la orientación local es la fuente de verdad.
+      if (senderId is! String || senderId == _myPlayerId) return;
+      final vmath.Quaternion? q = _parseQuaternion(msg);
+      if (q == null) return;
+      _playerOrientations[senderId] = q;
+      notifyListeners();
+    }
+  }
+
+  static String? _sanitizeName(Object? raw) {
+    if (raw is! String) return null;
+    final String name = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
+    if (name.isEmpty) return null;
+    return name.length > maxNameLength ? name.substring(0, maxNameLength) : name;
+  }
+
+  static vmath.Quaternion? _parseQuaternion(Map<String, dynamic> msg) {
+    final List<double> c = <double>[];
+    for (final String k in const <String>['x', 'y', 'z', 'w']) {
+      final Object? v = msg[k];
+      if (v is! num || !v.isFinite) return null;
+      c.add(v.toDouble());
+    }
+    final vmath.Quaternion q = vmath.Quaternion(c[0], c[1], c[2], c[3]);
+    if (q.length < 1e-6) return null;
+    return q..normalize();
+  }
+
+  static Map<String, dynamic> _motionPayload(String playerId, vmath.Quaternion q) => <String, dynamic>{
+        'type': 'motion',
+        'playerId': playerId,
+        'x': q.x,
+        'y': q.y,
+        'z': q.z,
+        'w': q.w,
+      };
 
   void _updatePlayersFromList(List<dynamic> listJson) {
     _players.clear();
@@ -285,16 +356,7 @@ class LanNetworkService extends ChangeNotifier {
 
     _playerOrientations[_myPlayerId] = q;
 
-    final Map<String, dynamic> motionPayload = <String, dynamic>{
-      'type': 'motion',
-      'playerId': _myPlayerId,
-      'x': q.x,
-      'y': q.y,
-      'z': q.z,
-      'w': q.w,
-    };
-
-    final String jsonStr = jsonEncode(motionPayload);
+    final String jsonStr = jsonEncode(_motionPayload(_myPlayerId, q));
 
     if (_isHost) {
       _broadcastToClients(jsonStr);
@@ -335,22 +397,24 @@ class LanNetworkService extends ChangeNotifier {
   }
 
   void _broadcastToClients(String message, {String? excludeSenderId}) {
-    for (int i = 0; i < _hostSockets.length; i++) {
+    _hostSockets.forEach((String clientId, WebSocket socket) {
+      if (clientId == excludeSenderId) return;
       try {
-        _hostSockets[i].add(message);
+        socket.add(message);
       } catch (_) {}
-    }
+    });
   }
 
   Future<void> stopService() async {
     stopMotionSync();
     _gameStarted = false;
-    for (final WebSocket s in _hostSockets) {
+    final List<WebSocket> sockets = _hostSockets.values.toList();
+    _hostSockets.clear();
+    for (final WebSocket s in sockets) {
       try {
         await s.close();
       } catch (_) {}
     }
-    _hostSockets.clear();
 
     await _clientSocket?.close();
     _clientSocket = null;
@@ -365,8 +429,17 @@ class LanNetworkService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Las operaciones de red son asíncronas y pueden terminar después de dispose();
+  /// en ese caso no se notifica a nadie (evita "used after being disposed").
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     stopService();
     super.dispose();
   }
