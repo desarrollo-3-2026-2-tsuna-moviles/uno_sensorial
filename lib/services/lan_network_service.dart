@@ -44,7 +44,14 @@ class LanNetworkService extends ChangeNotifier {
 
   HttpServer? _server;
   WebSocket? _clientSocket;
-  final List<WebSocket> _hostSockets = <WebSocket>[];
+
+  /// Sockets de los clientes conectados (solo host), indexados por id de jugador.
+  final Map<String, WebSocket> _hostSockets = <String, WebSocket>{};
+
+  /// Contador incremental para ids de cliente: nunca se reutiliza un id dentro de una sala.
+  int _nextClientNumber = 1;
+
+  bool _disposed = false;
 
   String _localIp = 'Obteniendo IP...';
   bool _isHost = false;
@@ -77,7 +84,7 @@ class LanNetworkService extends ChangeNotifier {
 
       for (final NetworkInterface interface in interfaces) {
         for (final InternetAddress address in interface.addresses) {
-          if (!address.isLoopback && address.address.startsWith('192.168.') || address.address.startsWith('10.')) {
+          if (!address.isLoopback && _isPrivateLanAddress(address.address)) {
             _localIp = address.address;
             notifyListeners();
             return _localIp;
@@ -99,6 +106,16 @@ class LanNetworkService extends ChangeNotifier {
     return _localIp;
   }
 
+  /// Rangos privados RFC 1918: 10.0.0.0/8, 172.16.0.0/12 y 192.168.0.0/16.
+  static bool _isPrivateLanAddress(String ip) {
+    final List<String> parts = ip.split('.');
+    if (parts.length != 4) return false;
+    final int? a = int.tryParse(parts[0]);
+    final int? b = int.tryParse(parts[1]);
+    if (a == null || b == null) return false;
+    return a == 10 || (a == 172 && b >= 16 && b <= 31) || (a == 192 && b == 168);
+  }
+
   /// RF-25: Crear sala. Este celular se vuelve el servidor (host).
   Future<bool> startHost({String playerName = 'Anfitrión', int port = defaultPort}) async {
     try {
@@ -117,6 +134,7 @@ class LanNetworkService extends ChangeNotifier {
       );
       _players.clear();
       _players.add(hostPlayer);
+      _nextClientNumber = 1;
       _playerOrientations[_myPlayerId] = vmath.Quaternion.identity();
 
       _server!.listen((HttpRequest request) async {
@@ -138,10 +156,14 @@ class LanNetworkService extends ChangeNotifier {
   }
 
   void _handleNewClientConnection(WebSocket socket) {
-    _hostSockets.add(socket);
-
-    final int newSeatIndex = _players.length;
-    final String clientId = 'player_$newSeatIndex';
+    // El asiento es el primer índice libre; el id es único aunque otros jugadores hayan salido.
+    final Set<int> takenSeats = _players.map((PlayerInfo p) => p.seatIndex).toSet();
+    int newSeatIndex = 1;
+    while (takenSeats.contains(newSeatIndex)) {
+      newSeatIndex++;
+    }
+    final String clientId = 'player_${_nextClientNumber++}';
+    _hostSockets[clientId] = socket;
     final PlayerInfo newPlayer = PlayerInfo(
       id: clientId,
       name: 'Jugador ${newSeatIndex + 1}',
@@ -166,14 +188,16 @@ class LanNetworkService extends ChangeNotifier {
         _processReceivedMessage(data as String, fromClientId: clientId);
       },
       onDone: () {
-        _hostSockets.remove(socket);
+        // Solo limpiar si este socket sigue registrado (stopService ya pudo haberlo cerrado).
+        if (_hostSockets[clientId] != socket) return;
+        _hostSockets.remove(clientId);
         _players.removeWhere((PlayerInfo p) => p.id == clientId);
         _playerOrientations.remove(clientId);
         _broadcastRoomState();
         notifyListeners();
       },
       onError: (_) {
-        _hostSockets.remove(socket);
+        // onDone se dispara después y hace la limpieza.
       },
     );
 
@@ -249,7 +273,10 @@ class LanNetworkService extends ChangeNotifier {
         _gameStarted = true;
         notifyListeners();
       } else if (type == 'motion') {
-        final String senderId = msg['playerId'] as String;
+        // En el host, el remitente real es el socket que envió el mensaje.
+        final String senderId = fromClientId ?? msg['playerId'] as String;
+        // Ignorar ecos de nuestro propio movimiento: la orientación local es la fuente de verdad.
+        if (senderId == _myPlayerId) return;
         final double x = (msg['x'] as num).toDouble();
         final double y = (msg['y'] as num).toDouble();
         final double z = (msg['z'] as num).toDouble();
@@ -258,7 +285,8 @@ class LanNetworkService extends ChangeNotifier {
         _playerOrientations[senderId] = vmath.Quaternion(x, y, z, w);
 
         if (_isHost) {
-          _broadcastToClients(jsonStr, excludeSenderId: senderId);
+          msg['playerId'] = senderId;
+          _broadcastToClients(jsonEncode(msg), excludeSenderId: senderId);
         }
 
         notifyListeners();
@@ -335,22 +363,24 @@ class LanNetworkService extends ChangeNotifier {
   }
 
   void _broadcastToClients(String message, {String? excludeSenderId}) {
-    for (int i = 0; i < _hostSockets.length; i++) {
+    _hostSockets.forEach((String clientId, WebSocket socket) {
+      if (clientId == excludeSenderId) return;
       try {
-        _hostSockets[i].add(message);
+        socket.add(message);
       } catch (_) {}
-    }
+    });
   }
 
   Future<void> stopService() async {
     stopMotionSync();
     _gameStarted = false;
-    for (final WebSocket s in _hostSockets) {
+    final List<WebSocket> sockets = _hostSockets.values.toList();
+    _hostSockets.clear();
+    for (final WebSocket s in sockets) {
       try {
         await s.close();
       } catch (_) {}
     }
-    _hostSockets.clear();
 
     await _clientSocket?.close();
     _clientSocket = null;
@@ -365,8 +395,17 @@ class LanNetworkService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Las operaciones de red son asíncronas y pueden terminar después de dispose();
+  /// en ese caso no se notifica a nadie (evita "used after being disposed").
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     stopService();
     super.dispose();
   }
