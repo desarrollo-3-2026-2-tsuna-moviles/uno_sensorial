@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uno_game/services/lan_network_service.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
@@ -77,11 +80,12 @@ void main() {
       if (lastSent != null && !identical(own, lastSent)) echoes++;
     });
 
-    final vmath.Quaternion sent = vmath.Quaternion(0.1, 0.2, 0.3, 0.9);
+    final vmath.Quaternion sent = vmath.Quaternion(0.1, 0.2, 0.3, 0.9)..normalize();
     lastSent = sent;
     a.sendLocalMotion(sent);
-    await waitFor(() => b.playerOrientations[a.myPlayerId]?.w == sent.w);
-    expect(host.playerOrientations[a.myPlayerId]?.x, closeTo(0.1, 1e-9));
+    await waitFor(() => (b.playerOrientations[a.myPlayerId]?.x ?? 0) > 0);
+    expect(b.playerOrientations[a.myPlayerId]!.x, closeTo(sent.x, 1e-9));
+    expect(host.playerOrientations[a.myPlayerId]!.x, closeTo(sent.x, 1e-9));
 
     // B también se mueve: A recibe notificaciones, pero nunca su propio movimiento de vuelta.
     b.sendLocalMotion(vmath.Quaternion(0, 0, 0, 1));
@@ -96,5 +100,67 @@ void main() {
     clients.remove(c);
     c.dispose();
     await Future<void>.delayed(const Duration(milliseconds: 100));
+  });
+
+  group('el host solo acepta de los clientes los mensajes que les corresponden', () {
+    late WebSocket evil;
+    late String evilId;
+    late LanNetworkService honest;
+
+    setUp(() async {
+      honest = await join('Honesto');
+      evil = await WebSocket.connect('ws://127.0.0.1:$port');
+      await waitFor(() => host.players.length == 3);
+      evilId = host.players.last.id;
+    });
+
+    tearDown(() async {
+      await evil.close();
+    });
+
+    void sendEvil(Map<String, dynamic> msg) => evil.add(jsonEncode(msg));
+
+    test('un cliente no puede iniciar la partida ni reescribir la sala', () async {
+      sendEvil(<String, dynamic>{'type': 'start_game'});
+      sendEvil(<String, dynamic>{
+        'type': 'room_state',
+        'players': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 'x', 'name': 'Falso', 'seatIndex': 0},
+        ],
+      });
+      sendEvil(<String, dynamic>{'type': 'init', 'playerId': 'host_0', 'seatIndex': 0, 'players': <dynamic>[]});
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(host.gameStarted, isFalse);
+      expect(honest.gameStarted, isFalse);
+      expect(host.players.length, 3);
+      expect(host.myPlayerId, 'host_0');
+      expect(honest.players.map((PlayerInfo p) => p.name), isNot(contains('Falso')));
+    });
+
+    test('un cliente no puede hacerse pasar por otro jugador al enviar movimiento', () async {
+      sendEvil(<String, dynamic>{'type': 'motion', 'playerId': honest.myPlayerId, 'x': 1, 'y': 0, 'z': 0, 'w': 0});
+      await waitFor(() => host.playerOrientations[evilId]?.x == 1.0);
+
+      // El movimiento se atribuye al socket que lo envió, no al id que dice el mensaje.
+      expect(host.playerOrientations[honest.myPlayerId]!.w, 1.0);
+      await waitFor(() => honest.playerOrientations[evilId]?.x == 1.0);
+    });
+
+    test('se descartan movimientos y nombres inválidos', () async {
+      sendEvil(<String, dynamic>{'type': 'motion', 'x': 'a', 'y': 0, 'z': 0, 'w': 1});
+      sendEvil(<String, dynamic>{'type': 'motion', 'x': 0, 'y': 0, 'z': 0, 'w': 0});
+      sendEvil(<String, dynamic>{'type': 'join', 'name': 42});
+      sendEvil(<String, dynamic>{'type': 'join', 'name': '   '});
+      evil.add('esto no es json');
+      evil.add('[1, 2, 3]');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(host.playerOrientations[evilId]!.w, 1.0);
+      expect(host.players.last.name, 'Jugador 3');
+
+      sendEvil(<String, dynamic>{'type': 'join', 'name': '  ${'N' * 50}\n '});
+      await waitFor(() => host.players.last.name != 'Jugador 3');
+      expect(host.players.last.name, 'N' * LanNetworkService.maxNameLength);
+    });
   });
 }
